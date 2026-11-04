@@ -63,7 +63,8 @@ original launcher's analysis logs. No crash cause is confirmed yet.
 
 ## Cover art and music
 
-Copy the provided covers into `controller-assets` with these exact filenames:
+Copy the provided covers into `controller-assets` with these filenames
+(PNG, JPEG and WebP extensions also work):
 
 | File | Game |
 | --- | --- |
@@ -75,8 +76,28 @@ The menu fits 2:3 covers. Missing/unreadable covers get a labeled placeholder.
 The images shown in chat are not bundled in this repository yet; send them as
 downloadable image files or a ZIP to include them in a release.
 
-Optional FLAC theme playback is planned after the audio file arrives; this
-version does not play music.
+## Music and hidden console (v0.3)
+
+Extract the **whole update ZIP**, including `controller-assets/theme.wav`, into
+the main Uncharted folder and replace the older companion files. Keep your
+existing game folders, settings, and cover files.
+
+The supplied Nate's Theme 3.0 recording is bundled as a 16-bit stereo WAV for
+Windows/Proton's built-in audio playback. It has a two-second fade-in and plays
+at 55% source level, looping while the menu is open. It stops before launching
+a game or exiting the menu, and restarts with a fade when returning from a game.
+No FLAC codec, music player, or Python package installation is needed. Removing
+or renaming `theme.wav` disables music.
+
+The updated CMD starter uses console Python so the menu can hide its inherited
+command window at startup; the fallback uses pythonw and exits the CMD starter.
+A brief startup flash is still possible when Steam starts CMD. To avoid CMD
+entirely, use `python/pythonw.exe` directly as the Steam Target with the quoted
+full path to `controller_menu.pyw` as Launch Options (see installation above).
+Child game launches use Windows' no-console flag.
+
+Console visibility and audible playback still need verification on Bazzite;
+cloud tests cover lifecycle calls and validate the WAV fade, format and duration.
 
 ## Validation and limits
 

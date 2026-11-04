@@ -49,7 +49,7 @@ class ControllerTests(unittest.TestCase):
             (root / "launcher" / "uncharted_launcher.pyw").touch()
             menu = module.Menu.__new__(module.Menu)
             menu.process, menu.child_log, menu.index = None, None, 1
-            menu.pads, menu.root = Mock(), Mock()
+            menu.pads, menu.root, menu.music = Mock(), Mock(), Mock()
             menu.keys = {"a"}
             with patch.object(module, "ROOT", root), patch.object(module.subprocess, "Popen") as popen:
                 menu.play()
@@ -57,18 +57,43 @@ class ControllerTests(unittest.TestCase):
                 self.assertEqual(args[0][-2:], ["--launch-game", "u2"])
                 self.assertNotIn("env", kwargs)  # inherits Steam's Proton environment
                 menu.pads.close.assert_called_once()
+                menu.music.stop.assert_called_once()
+                self.assertEqual(kwargs["creationflags"], getattr(module.subprocess, "CREATE_NO_WINDOW", 0))
                 menu.root.withdraw.assert_called_once()
                 menu.child_log.close()
 
     def test_failed_handoff_keeps_menu_visible(self):
         menu = module.Menu.__new__(module.Menu)
         menu.process, menu.child_log, menu.index = None, None, 0
-        menu.root, menu.draw = Mock(), Mock()
+        menu.root, menu.draw, menu.music = Mock(), Mock(), Mock()
         with tempfile.TemporaryDirectory() as directory, patch.object(module, "ROOT", Path(directory)), patch.object(module, "Gamepads"), self.assertLogs(module.LOG, level="ERROR"):
             menu.play()
             menu.root.withdraw.assert_not_called()
             menu.draw.assert_called_once()
             self.assertIn("Could not start game", menu.status)
+
+    def test_music_is_async_looping_and_stops(self):
+        music = module.Music.__new__(module.Music)
+        backend = Mock(SND_FILENAME=1, SND_ASYNC=2, SND_LOOP=4, SND_NODEFAULT=8)
+        music.backend = backend
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "controller-assets").mkdir()
+            (root / "controller-assets" / "theme.wav").touch()
+            with patch.object(module, "ROOT", root):
+                music.start()
+                backend.PlaySound.assert_called_once_with(str(root / "controller-assets" / "theme.wav"), 15)
+                music.stop()
+                backend.PlaySound.assert_called_with(None, 0)
+
+    def test_png_covers_load_without_renaming_extension(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "controller-assets").mkdir()
+            module.Image.new("RGB", (60, 90), "red").save(root / "controller-assets" / "u2.png")
+            with patch.object(module, "ROOT", root):
+                self.assertEqual(module.load_cover("u2").size, (60, 90))
+                self.assertIsNone(module.load_cover("u1"))
 
     def test_confirm_requires_release(self):
         nav = module.Navigation()

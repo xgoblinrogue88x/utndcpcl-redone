@@ -1,11 +1,12 @@
 @echo off
 cd /d "%~dp0"
-if exist "python\pythonw.exe" (
-  "python\pythonw.exe" "%~dp0controller_menu.pyw"
-  exit /b
-)
+rem Console Python inherits this window so the menu can hide it on startup.
 if exist "python\python.exe" (
   "python\python.exe" "%~dp0controller_menu.pyw"
+  exit /b
+)
+if exist "python\pythonw.exe" (
+  start "" /b "python\pythonw.exe" "%~dp0controller_menu.pyw"
   exit /b
 )
 echo Could not find the launcher's bundled Python in the python folder.

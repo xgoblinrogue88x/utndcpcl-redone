@@ -16,6 +16,65 @@ BG, GOLD, TEXT = "#10181c", "#dfbd76", "#f6f0e3"
 LOG = logging.getLogger("controller-menu")
 
 
+def hide_console():
+    """Hide the inherited batch console under Windows/Proton."""
+    if sys.platform != "win32":
+        return
+    kernel = ctypes.windll.kernel32
+    kernel.GetConsoleWindow.restype = ctypes.c_void_p
+    window = kernel.GetConsoleWindow()
+    if window:
+        show = ctypes.windll.user32.ShowWindow
+        show.argtypes = [ctypes.c_void_p, ctypes.c_int]
+        show.restype = ctypes.c_bool
+        show(window, 0)
+
+
+class Music:
+    """Async PCM playback with no external player or codec dependency.
+
+    The bundled WAV contains the two-second fade, so restarting it on return
+    from a game fades in again without blocking the Tk event loop.
+    """
+    def __init__(self):
+        self.backend = None
+        try:
+            import winsound
+            self.backend = winsound
+        except ImportError:
+            LOG.warning("Windows audio backend unavailable")
+
+    def start(self):
+        path = ROOT / "controller-assets" / "theme.wav"
+        if self.backend and path.is_file():
+            try:
+                self.backend.PlaySound(str(path), self.backend.SND_FILENAME |
+                                       self.backend.SND_ASYNC | self.backend.SND_LOOP |
+                                       self.backend.SND_NODEFAULT)
+            except RuntimeError:
+                LOG.exception("Menu music could not start")
+
+    def stop(self):
+        if self.backend:
+            try:
+                self.backend.PlaySound(None, 0)
+            except RuntimeError:
+                LOG.exception("Menu music could not stop")
+
+
+def load_cover(key):
+    for extension in ("jpg", "png", "jpeg", "webp", "JPG", "PNG", "JPEG"):
+        path = ROOT / "controller-assets" / (key + "." + extension)
+        if not path.is_file():
+            continue
+        try:
+            with Image.open(path) as image:
+                return image.convert("RGB")
+        except (OSError, ValueError):
+            LOG.exception("Could not read cover %s", path.name)
+    return None
+
+
 def launch_command(root, game):
     if game not in {key for key, _ in GAMES}:
         raise ValueError("Unknown game")
@@ -145,6 +204,7 @@ class Menu:
         self.image_size = None
         self.redraw_job = None
         self.child_log = None
+        self.music = Music()
         self.exit_until = 0
         self.status = "Choose your adventure"
         self.canvas = tk.Canvas(root, bg=BG, highlightthickness=0)
@@ -157,15 +217,9 @@ class Menu:
         root.bind("<KeyRelease>", lambda e: self.key(e.keysym, False))
         root.bind("<FocusOut>", lambda _: self.keys.clear())
         root.protocol("WM_DELETE_WINDOW", self.close)
-        self.covers = []
-        for key, _ in GAMES:
-            path = ROOT / "controller-assets" / (key + ".jpg")
-            try:
-                with Image.open(path) as image:
-                    self.covers.append(image.convert("RGB"))
-            except (OSError, ValueError):
-                self.covers.append(None)
+        self.covers = [load_cover(key) for key, _ in GAMES]
         self.draw()
+        root.after(250, lambda: self.process is None and self.music.start())
         root.after(30, self.poll)
 
     def key(self, name, down):
@@ -227,14 +281,17 @@ class Menu:
             self.child_log.flush()
             if self.pads:
                 self.pads.close()
+            self.music.stop()
             self.process = subprocess.Popen(command, cwd=str(ROOT), stdout=self.child_log,
-                                            stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+                                            stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         except OSError as error:
             LOG.exception("Game launch failed")
             if self.child_log:
                 self.child_log.close()
                 self.child_log = None
             self.pads = Gamepads()
+            self.music.start()
             self.status = "Could not start game: " + str(error)
             self.draw()
             return
@@ -243,6 +300,7 @@ class Menu:
 
     def close(self):
         # Never terminate the game or its launcher when closing this menu.
+        self.music.stop()
         if self.pads:
             self.pads.close()
         if self.child_log:
@@ -264,6 +322,7 @@ class Menu:
             self.status = "Choose your adventure" if code == 0 else "Launcher exited with code " + str(code)
             self.root.deiconify()
             self.root.focus_force()
+            self.music.start()
             # Absorb held buttons when control returns from a game.
             self.navigation.previous = {"a", "b", "left", "right"}
             self.draw()
@@ -295,13 +354,14 @@ class Menu:
 
 
 def main():
+    hide_console()
     try:
         ctypes.windll.shcore.SetProcessDpiAwareness(1)
     except (AttributeError, OSError):
         pass
     logging.basicConfig(filename=str(ROOT / "controller-menu.log"), level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s")
-    LOG.info("Controller companion v0.2 starting (%s)", sys.platform)
+    LOG.info("Controller companion v0.3 starting (%s)", sys.platform)
     root = tk.Tk()
     root.report_callback_exception = lambda kind, value, trace: LOG.error(
         "Menu callback failed", exc_info=(kind, value, trace))
