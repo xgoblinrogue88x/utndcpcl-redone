@@ -131,3 +131,7 @@ above the covers. Captions beneath the covers have been removed.
 Extract the entire ZIP into the main Uncharted folder, merge `controller-assets`,
 and replace the older companion files. No separate logo download or manual
 image setup is needed. Covers, music, and the fullscreen-focus changes are included.
+
+The normal “Choose your adventure” prompt is now `controller-assets/adventure.png`,
+exported from the supplied wordmark reference. It scales proportionally beneath
+the covers. Exit confirmation and error messages remain readable text.

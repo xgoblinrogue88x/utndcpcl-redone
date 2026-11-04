@@ -242,6 +242,11 @@ class Menu:
                 self.logo = self.logo.crop(bounds)
         self.logo_image = None
         self.logo_size = None
+        self.adventure = load_cover("adventure", "RGBA")
+        if self.adventure and self.adventure.getbbox():
+            self.adventure = self.adventure.crop(self.adventure.getbbox())
+        self.adventure_image = None
+        self.adventure_size = None
         self.draw()
         self.present()
         root.after(250, lambda: self.process is None and self.music.start())
@@ -324,7 +329,15 @@ class Menu:
                 c.create_rectangle(x - cw / 2, y, x + cw / 2, y + ch, fill="#21343a", outline="")
                 text(x, y + ch * .40, "UNCHARTED " + str(i + 1), 20, GOLD)
                 text(x, y + ch * .56, "Cover art pending", 12)
-        text(w / 2, h * .85, self.status, 16)
+        if self.status == "Choose your adventure" and self.adventure:
+            ratio = min(w * .65 / self.adventure.width, h * .08 / self.adventure.height)
+            size = (max(1, int(self.adventure.width * ratio)), max(1, int(self.adventure.height * ratio)))
+            if self.adventure_size != size:
+                self.adventure_image = ImageTk.PhotoImage(self.adventure.resize(size, Image.Resampling.LANCZOS))
+                self.adventure_size = size
+            c.create_image(w / 2, h * .85, image=self.adventure_image)
+        else:
+            text(w / 2, h * .85, self.status, 16)
         text(w / 2, h * .94, "D-pad / Left stick: Select     A / Cross: Play     B / Circle: Exit", 14, GOLD)
 
     def play(self):
