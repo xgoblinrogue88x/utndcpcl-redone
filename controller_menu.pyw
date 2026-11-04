@@ -235,6 +235,11 @@ class Menu:
         root.protocol("WM_DELETE_WINDOW", self.close)
         self.covers = [load_cover(key) for key, _ in GAMES]
         self.logo = load_cover("logo", "RGBA")
+        if self.logo:
+            # Fit the artwork itself, even if the exported PNG has transparent margins.
+            bounds = self.logo.getbbox()
+            if bounds:
+                self.logo = self.logo.crop(bounds)
         self.logo_image = None
         self.logo_size = None
         self.draw()

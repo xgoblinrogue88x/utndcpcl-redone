@@ -123,7 +123,11 @@ The cloud checkout does not contain the game runtime, Windows Python, or SDL3 DL
 
 ## Image header update
 
-Game captions beneath the covers have been removed. Save your header logo as
-`controller-assets/logo.png` and restart the menu. It scales to fit while
-preserving its aspect ratio and transparency. The logo file is not bundled yet;
-without it, the header area is blank. The three game covers and music remain included.
+The download includes `controller-assets/logo.png`, exported from the supplied
+logo reference with the image tool. It replaces the text header automatically.
+The menu preserves its transparency and proportions and fits the visible logo
+above the covers. Captions beneath the covers have been removed.
+
+Extract the entire ZIP into the main Uncharted folder, merge `controller-assets`,
+and replace the older companion files. No separate logo download or manual
+image setup is needed. Covers, music, and the fullscreen-focus changes are included.
