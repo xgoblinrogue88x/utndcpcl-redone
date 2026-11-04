@@ -76,6 +76,20 @@ The menu fits 2:3 covers. Missing/unreadable covers get a labeled placeholder.
 The images shown in chat are not bundled in this repository yet; send them as
 downloadable image files or a ZIP to include them in a release.
 
+## Fullscreen activation (v0.4)
+
+The menu requests focus after its window maps, with brief retries while Steam
+and the hidden batch console settle. The temporary topmost setting clears after
+1.2 seconds; launching a game cancels retries and clears topmost immediately.
+The same activation runs when returning from a game. This does not change KDE's
+global focus settings. Actual desktop activation still needs testing on Bazzite.
+
+To use your exact covers without another upload, save them locally into the
+`controller-assets` folder: `u1.png` for Drake's Fortune, `u2.png` for Among
+Thieves, and `u3.png` for Drake's Deception. Existing JPEG/WebP names also work.
+Restart the menu after adding covers. The current ZIP still contains no covers;
+inline chat images have not been transferred into the repository.
+
 ## Music and hidden console (v0.3)
 
 Extract the **whole update ZIP**, including `controller-assets/theme.wav`, into

@@ -30,6 +30,20 @@ def hide_console():
         show(window, 0)
 
 
+def foreground_window(root):
+    """Request activation of Tk's outer Wine window after it has been mapped."""
+    if sys.platform != "win32":
+        return
+    user32 = ctypes.windll.user32
+    user32.GetAncestor.argtypes = [ctypes.c_void_p, ctypes.c_uint]
+    user32.GetAncestor.restype = ctypes.c_void_p
+    user32.SetForegroundWindow.argtypes = [ctypes.c_void_p]
+    user32.SetForegroundWindow.restype = ctypes.c_bool
+    window = user32.GetAncestor(root.winfo_id(), 2) or root.winfo_id()
+    if not user32.SetForegroundWindow(window):
+        LOG.info("Desktop deferred foreground activation")
+
+
 class Music:
     """Async PCM playback with no external player or codec dependency.
 
@@ -205,6 +219,8 @@ class Menu:
         self.redraw_job = None
         self.child_log = None
         self.music = Music()
+        self.focus_generation = 0
+        self.closing = False
         self.exit_until = 0
         self.status = "Choose your adventure"
         self.canvas = tk.Canvas(root, bg=BG, highlightthickness=0)
@@ -219,8 +235,37 @@ class Menu:
         root.protocol("WM_DELETE_WINDOW", self.close)
         self.covers = [load_cover(key) for key, _ in GAMES]
         self.draw()
+        self.present()
         root.after(250, lambda: self.process is None and self.music.start())
         root.after(30, self.poll)
+
+    def present(self):
+        """Activate at startup/return; never keep stealing focus afterward."""
+        self.focus_generation += 1
+        generation = self.focus_generation
+        self.root.deiconify()
+        self.root.attributes("-fullscreen", True)
+
+        def activate():
+            if self.closing or self.process or generation != self.focus_generation:
+                return
+            self.root.attributes("-topmost", True)
+            self.root.lift()
+            self.root.focus_force()
+            try:
+                foreground_window(self.root)
+            except (AttributeError, OSError):
+                LOG.exception("Native foreground request failed")
+
+        def release():
+            if not self.closing and generation == self.focus_generation:
+                self.root.attributes("-topmost", False)
+
+        # Steam/CMD may briefly reactivate as the hidden console disappears.
+        # All retries end after 1.2 seconds, and are canceled by game launch.
+        for delay in (50, 350, 900):
+            self.root.after(delay, activate)
+        self.root.after(1200, release)
 
     def key(self, name, down):
         action = {"Left": "left", "Right": "right", "Return": "a",
@@ -282,6 +327,8 @@ class Menu:
             if self.pads:
                 self.pads.close()
             self.music.stop()
+            self.focus_generation += 1
+            self.root.attributes("-topmost", False)
             self.process = subprocess.Popen(command, cwd=str(ROOT), stdout=self.child_log,
                                             stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
                                             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
@@ -293,6 +340,7 @@ class Menu:
             self.pads = Gamepads()
             self.music.start()
             self.status = "Could not start game: " + str(error)
+            self.present()
             self.draw()
             return
         self.keys.clear()
@@ -300,6 +348,7 @@ class Menu:
 
     def close(self):
         # Never terminate the game or its launcher when closing this menu.
+        self.closing = True
         self.music.stop()
         if self.pads:
             self.pads.close()
@@ -320,8 +369,7 @@ class Menu:
             self.child_log = None
             self.pads = Gamepads()
             self.status = "Choose your adventure" if code == 0 else "Launcher exited with code " + str(code)
-            self.root.deiconify()
-            self.root.focus_force()
+            self.present()
             self.music.start()
             # Absorb held buttons when control returns from a game.
             self.navigation.previous = {"a", "b", "left", "right"}
@@ -361,7 +409,7 @@ def main():
         pass
     logging.basicConfig(filename=str(ROOT / "controller-menu.log"), level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s")
-    LOG.info("Controller companion v0.3 starting (%s)", sys.platform)
+    LOG.info("Controller companion v0.4 starting (%s)", sys.platform)
     root = tk.Tk()
     root.report_callback_exception = lambda kind, value, trace: LOG.error(
         "Menu callback failed", exc_info=(kind, value, trace))

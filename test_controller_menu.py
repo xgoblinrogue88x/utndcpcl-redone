@@ -51,6 +51,7 @@ class ControllerTests(unittest.TestCase):
             menu.process, menu.child_log, menu.index = None, None, 1
             menu.pads, menu.root, menu.music = Mock(), Mock(), Mock()
             menu.keys = {"a"}
+            menu.focus_generation = 0
             with patch.object(module, "ROOT", root), patch.object(module.subprocess, "Popen") as popen:
                 menu.play()
                 args, kwargs = popen.call_args
@@ -65,7 +66,7 @@ class ControllerTests(unittest.TestCase):
     def test_failed_handoff_keeps_menu_visible(self):
         menu = module.Menu.__new__(module.Menu)
         menu.process, menu.child_log, menu.index = None, None, 0
-        menu.root, menu.draw, menu.music = Mock(), Mock(), Mock()
+        menu.root, menu.draw, menu.music, menu.present = Mock(), Mock(), Mock(), Mock()
         with tempfile.TemporaryDirectory() as directory, patch.object(module, "ROOT", Path(directory)), patch.object(module, "Gamepads"), self.assertLogs(module.LOG, level="ERROR"):
             menu.play()
             menu.root.withdraw.assert_not_called()
@@ -94,6 +95,37 @@ class ControllerTests(unittest.TestCase):
             with patch.object(module, "ROOT", root):
                 self.assertEqual(module.load_cover("u2").size, (60, 90))
                 self.assertIsNone(module.load_cover("u1"))
+
+    def test_focus_is_bounded_and_released(self):
+        menu = module.Menu.__new__(module.Menu)
+        menu.root = Mock()
+        menu.focus_generation, menu.closing, menu.process = 0, False, None
+        callbacks = {}
+        menu.root.after.side_effect = lambda delay, callback: callbacks.update({delay: callback})
+        with patch.object(module, "foreground_window") as foreground:
+            menu.present()
+            self.assertEqual(set(callbacks), {50, 350, 900, 1200})
+            menu.root.attributes.assert_called_with("-fullscreen", True)
+            callbacks[50]()
+            foreground.assert_called_once_with(menu.root)
+            menu.root.focus_force.assert_called_once()
+            callbacks[1200]()
+            menu.root.attributes.assert_called_with("-topmost", False)
+            menu.process = Mock()
+            callbacks[900]()
+            foreground.assert_called_once()
+
+    def test_pending_activation_cannot_steal_game_focus(self):
+        menu = module.Menu.__new__(module.Menu)
+        menu.root = Mock()
+        menu.focus_generation, menu.closing, menu.process = 0, False, None
+        callbacks = {}
+        menu.root.after.side_effect = lambda delay, callback: callbacks.update({delay: callback})
+        with patch.object(module, "foreground_window") as foreground:
+            menu.present()
+            menu.focus_generation += 1  # launching a game invalidates pending timers
+            callbacks[350]()
+            foreground.assert_not_called()
 
     def test_confirm_requires_release(self):
         nav = module.Navigation()
