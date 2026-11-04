@@ -339,7 +339,12 @@ class Menu:
                 text(x, y + ch * .40, "UNCHARTED " + str(i + 1), 20, GOLD)
                 text(x, y + ch * .56, "Cover art pending", 12)
         if self.status == "Choose your adventure" and self.adventure:
-            ratio = 3 * min(w * .65 / self.adventure.width, h * .08 / self.adventure.height)
+            # Keep the established 3x display footprint when replacing the old
+            # padded export (2158x589) with tightly cropped original artwork.
+            previous_aspect = 2158 / 589
+            base_width = min(w * .65, h * .08 * previous_aspect)
+            ratio = min(3 * base_width / self.adventure.width,
+                        3 * base_width / previous_aspect / self.adventure.height)
             size = (max(1, int(self.adventure.width * ratio)), max(1, int(self.adventure.height * ratio)))
             if self.adventure_size != size:
                 self.adventure_image = ImageTk.PhotoImage(self.adventure.resize(size, Image.Resampling.LANCZOS))
