@@ -137,3 +137,11 @@ exported from the supplied wordmark reference. It scales proportionally beneath
 the covers. Exit confirmation and error messages remain readable text.
 
 The adventure wordmark now renders at three times its previous size.
+
+## Background artwork
+
+`controller-assets/background.png` contains the parchment/Drake background
+exported from the supplied reference with the image tool. It fills the viewport
+without stretching, center-cropping where screen proportions differ. The fitted
+image is cached until the viewport size changes. Footer controls and status text
+use a dark ink color on the parchment for readability.

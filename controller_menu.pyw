@@ -7,7 +7,7 @@ import subprocess
 import sys
 import time
 import tkinter as tk
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageOps
 
 ROOT = Path(__file__).resolve().parent
 GAMES = (("u1", "Drake’s Fortune"), ("u2", "Among Thieves"),
@@ -224,6 +224,9 @@ class Menu:
         self.exit_until = 0
         self.status = "Choose your adventure"
         self.canvas = tk.Canvas(root, bg=BG, highlightthickness=0)
+        self.background = load_cover("background")
+        self.background_image = None
+        self.background_size = None
         self.canvas.pack(fill="both", expand=True)
         root.title("Uncharted · The Nathan Drake Collection")
         root.attributes("-fullscreen", True)
@@ -299,6 +302,12 @@ class Menu:
         c = self.canvas
         c.delete("all")
         w, h = max(c.winfo_width(), 640), max(c.winfo_height(), 480)
+        if self.background:
+            if self.background_size != (w, h):
+                fitted = ImageOps.fit(self.background, (w, h), method=Image.Resampling.LANCZOS)
+                self.background_image = ImageTk.PhotoImage(fitted)
+                self.background_size = (w, h)
+            c.create_image(0, 0, image=self.background_image, anchor="nw")
         scale = min(w / 1280, h / 720)
         def text(x, y, value, size, color=TEXT):
             c.create_text(x, y, text=value, fill=color,
@@ -337,8 +346,9 @@ class Menu:
                 self.adventure_size = size
             c.create_image(w / 2, h * .85, image=self.adventure_image)
         else:
-            text(w / 2, h * .85, self.status, 16)
-        text(w / 2, h * .94, "D-pad / Left stick: Select     A / Cross: Play     B / Circle: Exit", 14, GOLD)
+            text(w / 2, h * .85, self.status, 16, "#30271C" if self.background else TEXT)
+        text(w / 2, h * .94, "D-pad / Left stick: Select     A / Cross: Play     B / Circle: Exit", 14,
+             "#30271C" if self.background else GOLD)
 
     def play(self):
         if self.process:
