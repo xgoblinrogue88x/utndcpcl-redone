@@ -120,3 +120,10 @@ when a game is selected.
 Actual Proton startup, controller input, focus restoration, and game lifetime
 tracking must still be tested on the Bazzite PC with the complete installation.
 The cloud checkout does not contain the game runtime, Windows Python, or SDL3 DLL.
+
+## Image header update
+
+Game captions beneath the covers have been removed. Save your header logo as
+`controller-assets/logo.png` and restart the menu. It scales to fit while
+preserving its aspect ratio and transparency. The logo file is not bundled yet;
+without it, the header area is blank. The three game covers and music remain included.

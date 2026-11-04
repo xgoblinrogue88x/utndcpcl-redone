@@ -76,14 +76,14 @@ class Music:
                 LOG.exception("Menu music could not stop")
 
 
-def load_cover(key):
+def load_cover(key, mode="RGB"):
     for extension in ("jpg", "png", "jpeg", "webp", "JPG", "PNG", "JPEG"):
         path = ROOT / "controller-assets" / (key + "." + extension)
         if not path.is_file():
             continue
         try:
             with Image.open(path) as image:
-                return image.convert("RGB")
+                return image.convert(mode)
         except (OSError, ValueError):
             LOG.exception("Could not read cover %s", path.name)
     return None
@@ -234,6 +234,9 @@ class Menu:
         root.bind("<FocusOut>", lambda _: self.keys.clear())
         root.protocol("WM_DELETE_WINDOW", self.close)
         self.covers = [load_cover(key) for key, _ in GAMES]
+        self.logo = load_cover("logo", "RGBA")
+        self.logo_image = None
+        self.logo_size = None
         self.draw()
         self.present()
         root.after(250, lambda: self.process is None and self.music.start())
@@ -290,8 +293,13 @@ class Menu:
         def text(x, y, value, size, color=TEXT):
             c.create_text(x, y, text=value, fill=color,
                           font=("Segoe UI", max(10, int(size * scale))))
-        text(w / 2, h * .09, "UNCHARTED", 34, GOLD)
-        text(w / 2, h * .155, "THE NATHAN DRAKE COLLECTION", 14)
+        if self.logo:
+            ratio = min(w * .65 / self.logo.width, h * .16 / self.logo.height)
+            size = (max(1, int(self.logo.width * ratio)), max(1, int(self.logo.height * ratio)))
+            if self.logo_size != size:
+                self.logo_image = ImageTk.PhotoImage(self.logo.resize(size, Image.Resampling.LANCZOS))
+                self.logo_size = size
+            c.create_image(w / 2, h * .115, image=self.logo_image)
         ch = min(540, int(h * .49))
         cw = int(ch * 2 / 3)
         if self.image_size != (cw, ch):
@@ -311,7 +319,6 @@ class Menu:
                 c.create_rectangle(x - cw / 2, y, x + cw / 2, y + ch, fill="#21343a", outline="")
                 text(x, y + ch * .40, "UNCHARTED " + str(i + 1), 20, GOLD)
                 text(x, y + ch * .56, "Cover art pending", 12)
-            text(x, y + ch + 30 * scale, name, 17, GOLD if selected else TEXT)
         text(w / 2, h * .85, self.status, 16)
         text(w / 2, h * .94, "D-pad / Left stick: Select     A / Cross: Play     B / Circle: Exit", 14, GOLD)
 
