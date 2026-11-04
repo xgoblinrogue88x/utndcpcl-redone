@@ -145,6 +145,3 @@ exported from the supplied reference with the image tool. It fills the viewport
 without stretching, center-cropping where screen proportions differ. The fitted
 image is cached until the viewport size changes. Footer controls and status text
 use a dark ink color on the parchment for readability.
-
-The latest top logo uses the dark Uncharted/compass artwork exported from the
-new reference, with transparency for the parchment background.
