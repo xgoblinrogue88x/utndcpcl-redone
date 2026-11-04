@@ -37,10 +37,29 @@ direct Python target above is the recommended Steam setup.
 - Keyboard fallback: arrows, Enter, Escape. Steam Input may map those keys if
   the controller is not exposed as an SDL gamepad.
 
-The menu hides while the original launcher process runs and returns when that
-process exits. It never kills the game. This relies on the installed EXE staying
-alive for its game session; if your packaged EXE detaches immediately, report
-that behavior so process tracking can be adapted to the actual starter.
+## Bazzite update (v0.2)
+
+Replace the old `controller_menu.pyw` with the updated file. Keep the Steam
+shortcut that already opened the menu; no extra Bazzite packages or system
+changes are needed. Continue using Proton Experimental. Do not create another
+Steam shortcut or prefix, or run a second Proton command inside Launch Options.
+
+The menu now starts `launcher/uncharted_launcher.pyw --play u1` (or u2/u3)
+with the same bundled Python and inherited Steam environment, bypassing the
+EXE bootstrapper. It releases its controller handles before launching and waits
+for the original Python launcher to finish before restoring the menu.
+
+Startup no longer imports the entire original launcher. SDL device discovery
+runs once per second rather than every frame. Cover images are cached at their
+displayed size (capped at 540 pixels tall), and window resize redraws are delayed
+until resizing settles. These reduce work; no Bazzite timing measurements have
+been made in the cloud environment.
+
+If the session closes again, send `controller-menu.log` and
+`controller-game.log` from the main Uncharted folder, plus the original
+launcher's `analysis/uncharted-user/launcher-error.log` if present. Check logs for
+personal paths before sharing. A game crash can still appear only in the
+original launcher's analysis logs. No crash cause is confirmed yet.
 
 ## Cover art and music
 
@@ -64,7 +83,8 @@ version does not play music.
 `python -m unittest -v test_controller_menu.py` checks all three launch commands,
 missing-install handling, controller confirm debouncing and navigation repeat.
 The original uploaded source confirms support for `--play u1`, `u2`, and `u3`.
-The companion loads only its SDL gamepad adapter; it does not execute its main UI.
+The companion uses a standalone SDL adapter and starts the original launcher only
+when a game is selected.
 
 Actual Proton startup, controller input, focus restoration, and game lifetime
 tracking must still be tested on the Bazzite PC with the complete installation.

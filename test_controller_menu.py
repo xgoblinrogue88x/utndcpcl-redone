@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 import types
 import unittest
+from unittest.mock import Mock, patch
 
 module = types.ModuleType("controller_menu")
 module.__file__ = str(Path(__file__).with_name("controller_menu.pyw"))
@@ -13,17 +14,61 @@ class ControllerTests(unittest.TestCase):
     def test_original_launcher_arguments(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "Uncharted Launcher.exe").touch()
+            (root / "launcher").mkdir()
+            (root / "launcher" / "uncharted_launcher.pyw").touch()
             for key in ("u1", "u2", "u3"):
                 self.assertEqual(module.launch_command(root, key),
-                                 [str(root / "Uncharted Launcher.exe"), "--play", key])
+                                 [module.sys.executable, str(root / "controller_menu.pyw"), "--launch-game", key])
             with self.assertRaises(ValueError):
                 module.launch_command(root, "invalid")
+
+    def test_embedded_python_bridge_sets_import_path_and_arguments(self):
+        import sys
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            with patch.object(module, "ROOT", root), patch("runpy.run_path") as run:
+                old_path, old_argv = sys.path[:], sys.argv[:]
+                try:
+                    module.run_original("u3")
+                    script = root / "launcher" / "uncharted_launcher.pyw"
+                    self.assertEqual(sys.path[0], str(script.parent))
+                    self.assertEqual(sys.argv, [str(script), "--play", "u3"])
+                    run.assert_called_once_with(str(script), run_name="__main__")
+                finally:
+                    sys.path[:], sys.argv = old_path, old_argv
 
     def test_missing_installation(self):
         with tempfile.TemporaryDirectory() as directory:
             with self.assertRaises(FileNotFoundError):
                 module.launch_command(Path(directory), "u1")
+
+    def test_handoff_preserves_environment_and_releases_controller(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "launcher").mkdir()
+            (root / "launcher" / "uncharted_launcher.pyw").touch()
+            menu = module.Menu.__new__(module.Menu)
+            menu.process, menu.child_log, menu.index = None, None, 1
+            menu.pads, menu.root = Mock(), Mock()
+            menu.keys = {"a"}
+            with patch.object(module, "ROOT", root), patch.object(module.subprocess, "Popen") as popen:
+                menu.play()
+                args, kwargs = popen.call_args
+                self.assertEqual(args[0][-2:], ["--launch-game", "u2"])
+                self.assertNotIn("env", kwargs)  # inherits Steam's Proton environment
+                menu.pads.close.assert_called_once()
+                menu.root.withdraw.assert_called_once()
+                menu.child_log.close()
+
+    def test_failed_handoff_keeps_menu_visible(self):
+        menu = module.Menu.__new__(module.Menu)
+        menu.process, menu.child_log, menu.index = None, None, 0
+        menu.root, menu.draw = Mock(), Mock()
+        with tempfile.TemporaryDirectory() as directory, patch.object(module, "ROOT", Path(directory)), patch.object(module, "Gamepads"), self.assertLogs(module.LOG, level="ERROR"):
+            menu.play()
+            menu.root.withdraw.assert_not_called()
+            menu.draw.assert_called_once()
+            self.assertIn("Could not start game", menu.status)
 
     def test_confirm_requires_release(self):
         nav = module.Navigation()
