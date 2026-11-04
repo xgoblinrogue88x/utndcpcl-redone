@@ -123,8 +123,8 @@ The cloud checkout does not contain the game runtime, Windows Python, or SDL3 DL
 
 ## Image header update
 
-The download includes `controller-assets/logo.png`, exported from the supplied
-logo reference with the image tool. It replaces the text header automatically.
+The download includes `controller-assets/logo.png`, copied unchanged from the
+original supplied PNG. It is already transparent and replaces the text header automatically.
 The menu preserves its transparency and proportions and fits the visible logo
 above the covers. Captions beneath the covers have been removed.
 
