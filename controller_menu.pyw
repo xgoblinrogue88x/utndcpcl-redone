@@ -330,7 +330,7 @@ class Menu:
                 text(x, y + ch * .40, "UNCHARTED " + str(i + 1), 20, GOLD)
                 text(x, y + ch * .56, "Cover art pending", 12)
         if self.status == "Choose your adventure" and self.adventure:
-            ratio = min(w * .65 / self.adventure.width, h * .08 / self.adventure.height)
+            ratio = 3 * min(w * .65 / self.adventure.width, h * .08 / self.adventure.height)
             size = (max(1, int(self.adventure.width * ratio)), max(1, int(self.adventure.height * ratio)))
             if self.adventure_size != size:
                 self.adventure_image = ImageTk.PhotoImage(self.adventure.resize(size, Image.Resampling.LANCZOS))

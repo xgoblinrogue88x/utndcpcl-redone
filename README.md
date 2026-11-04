@@ -135,3 +135,5 @@ image setup is needed. Covers, music, and the fullscreen-focus changes are inclu
 The normal “Choose your adventure” prompt is now `controller-assets/adventure.png`,
 exported from the supplied wordmark reference. It scales proportionally beneath
 the covers. Exit confirmation and error messages remain readable text.
+
+The adventure wordmark now renders at three times its previous size.
