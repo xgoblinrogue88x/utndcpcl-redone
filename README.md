@@ -63,18 +63,18 @@ original launcher's analysis logs. No crash cause is confirmed yet.
 
 ## Cover art and music
 
-Copy the provided covers into `controller-assets` with these filenames
-(PNG, JPEG and WebP extensions also work):
+The download now includes your three original 600×900 PNG covers:
 
 | File | Game |
 | --- | --- |
-| `u1.jpg` | Drake's Fortune |
-| `u2.jpg` | Among Thieves |
-| `u3.jpg` | Drake's Deception |
+| `controller-assets/u1.png` | Drake's Fortune |
+| `controller-assets/u2.png` | Among Thieves |
+| `controller-assets/u3.png` | Drake's Deception |
 
-The menu fits 2:3 covers. Missing/unreadable covers get a labeled placeholder.
-The images shown in chat are not bundled in this repository yet; send them as
-downloadable image files or a ZIP to include them in a release.
+Extract the entire ZIP into the main Uncharted folder and allow the existing
+`controller-assets` folder to merge. No manual cover setup is needed. Restart
+the menu after updating. JPEG and WebP replacements are also supported; missing
+or unreadable files use a labeled placeholder.
 
 ## Fullscreen activation (v0.4)
 
@@ -84,11 +84,7 @@ and the hidden batch console settle. The temporary topmost setting clears after
 The same activation runs when returning from a game. This does not change KDE's
 global focus settings. Actual desktop activation still needs testing on Bazzite.
 
-To use your exact covers without another upload, save them locally into the
-`controller-assets` folder: `u1.png` for Drake's Fortune, `u2.png` for Among
-Thieves, and `u3.png` for Drake's Deception. Existing JPEG/WebP names also work.
-Restart the menu after adding covers. The current ZIP still contains no covers;
-inline chat images have not been transferred into the repository.
+Your exact covers are bundled in `controller-assets`; see the table above.
 
 ## Music and hidden console (v0.3)
 
